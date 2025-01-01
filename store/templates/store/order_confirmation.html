@@ -1,0 +1,321 @@
+{% extends 'store/base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<section class="order-confirmation-section">
+    <div class="container">
+        <div class="confirmation-card" data-aos="fade-up">
+            <div class="confirmation-header">
+                <div class="success-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h1>Order Confirmed!</h1>
+                <p>Thank you for your purchase. Your order has been successfully placed.</p>
+            </div>
+
+            <div class="order-details">
+                <div class="order-info">
+                    <div class="info-row">
+                        <span class="label">Order Number:</span>
+                        <span class="value">#{{ order.id }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Order Date:</span>
+                        <span class="value">{{ order.created_at|date:"F j, Y, g:i a" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Status:</span>
+                        <span class="value status-badge">{{ order.status|title }}</span>
+                    </div>
+                </div>
+
+                <div class="order-items">
+                    <h2>Order Items</h2>
+                    <div class="items-list">
+                        {% for item in items %}
+                        <div class="item-row" data-aos="fade-up" data-aos-delay="{{ forloop.counter|multiply:50 }}">
+                            <div class="item-info">
+                                <div class="item-icon">
+                                    <i class="fas fa-{{ item.product.category.icon }}"></i>
+                                </div>
+                                <div class="item-details">
+                                    <h3>{{ item.product.name }}</h3>
+                                    <p class="item-location">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        Aisle {{ item.product.aisle }} • Shelf {{ item.product.shelf }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="item-quantity">
+                                {{ item.quantity }}x
+                            </div>
+                            <div class="item-price">
+                                ₹{{ item.product.price }}
+                            </div>
+                            <div class="item-actions">
+                                <a href="{% url 'product_detail' item.product.id %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye"></i> View Product
+                                </a>
+                                <a href="{% url 'add_review' item.product.id %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-star"></i> Write Review
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="order-summary">
+                    <div class="summary-row">
+                        <span>Subtotal:</span>
+                        <span>₹{{ order.total_amount }}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Tax (10%):</span>
+                        <span>₹{{ order.total_amount|multiply:0.1 }}</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Total:</span>
+                        <span>₹{{ order.total_amount|multiply:1.1 }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="confirmation-actions">
+                <a href="{% url 'categories' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left"></i> Continue Shopping
+                </a>
+                <button class="btn btn-primary" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print Order
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.order-confirmation-section {
+    padding: 60px 0;
+    background: #f8fafc;
+    min-height: calc(100vh - 200px);
+}
+
+.confirmation-card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.confirmation-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.success-icon {
+    font-size: 4rem;
+    color: #22c55e;
+    margin-bottom: 1rem;
+    animation: scaleIn 0.5s ease;
+}
+
+.confirmation-header h1 {
+    color: #1a202c;
+    margin-bottom: 0.5rem;
+}
+
+.confirmation-header p {
+    color: #64748b;
+}
+
+.order-details {
+    border-top: 2px solid #e2e8f0;
+    padding-top: 2rem;
+}
+
+.order-info {
+    background: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.info-row:last-child {
+    margin-bottom: 0;
+}
+
+.label {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.value {
+    color: #1a202c;
+    font-weight: 600;
+}
+
+.status-badge {
+    background: #22c55e;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+}
+
+.order-items {
+    margin-bottom: 2rem;
+}
+
+.order-items h2 {
+    color: #1a202c;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.items-list {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+}
+
+.item-row {
+    display: grid;
+    grid-template-columns: 3fr 1fr 1fr;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.item-row:last-child {
+    border-bottom: none;
+}
+
+.item-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.item-icon {
+    width: 40px;
+    height: 40px;
+    background: #f1f5f9;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+}
+
+.item-details h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #1a202c;
+}
+
+.item-location {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.item-quantity {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.item-price {
+    color: #1a202c;
+    font-weight: 600;
+    text-align: right;
+}
+
+.order-summary {
+    background: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-top: 2rem;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    color: #475569;
+}
+
+.summary-row.total {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 2px solid #e2e8f0;
+    color: #1a202c;
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.confirmation-actions {
+    margin-top: 2rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@media print {
+    .navbar,
+    .footer,
+    .confirmation-actions {
+        display: none;
+    }
+
+    .confirmation-card {
+        box-shadow: none;
+    }
+
+    .order-confirmation-section {
+        padding: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .item-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .item-quantity,
+    .item-price {
+        text-align: left;
+    }
+
+    .confirmation-actions {
+        flex-direction: column;
+    }
+
+    .confirmation-actions .btn {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %} 

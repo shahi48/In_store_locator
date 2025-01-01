@@ -1,0 +1,426 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Category Header -->
+<section class="category-header">
+    <div class="container">
+        <!-- New Home Navigation -->
+        <div class="navigation-wrapper" data-aos="fade-down">
+            <div class="breadcrumb-nav">
+                <a href="{% url 'home' %}" class="nav-item home-link">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+                <i class="fas fa-chevron-right separator"></i>
+                <div class="nav-item current">
+                    <i class="fas fa-{{ category.icon }}"></i>
+                    <span>{{ category.name }}</span>
+                </div>
+            </div>
+            <div class="category-actions">
+                <div class="sort-dropdown">
+                    <select class="form-select">
+                        <option value="name">Sort by Name</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                        <option value="aisle">Sort by Aisle</option>
+                    </select>
+                </div>
+                <div class="view-controls">
+                    <button class="view-btn active" data-view="grid" title="Grid View">
+                        <i class="fas fa-th"></i>
+                    </button>
+                    <button class="view-btn" data-view="list" title="List View">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Info -->
+        <div class="category-info" data-aos="fade-up">
+            <div class="category-icon">
+                <i class="fas fa-{{ category.icon }} fa-2x"></i>
+            </div>
+            <div class="category-text">
+                <h1 class="page-title">{{ category.name }}</h1>
+                <p class="page-subtitle">{{ category.description }}</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Products Grid -->
+<section class="products-section">
+    <div class="container">
+        <div class="products-grid" id="products-container">
+            {% for product in products %}
+            <div class="product-card" data-aos="fade-up" data-aos-delay="{% widthratio forloop.counter 1 50 %}">
+                <div class="product-image">
+                    <div class="product-icon">
+                        <i class="fas fa-{{ category.icon }}"></i>
+                    </div>
+                </div>
+                <div class="product-details">
+                    <h3 class="product-title">{{ product.name }}</h3>
+                    <div class="product-meta">
+                        <span class="product-price">${{ product.price }}</span>
+                        <span class="product-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Aisle {{ product.aisle }} • Shelf {{ product.shelf }}
+                        </span>
+                    </div>
+                    <p class="product-description">{{ product.description }}</p>
+                    <div class="product-actions">
+                        <button class="btn btn-primary find-product" data-product-id="{{ product.id }}">
+                            <i class="fas fa-map-marker-alt"></i> Find
+                        </button>
+                        {% if user.is_authenticated %}
+                            <button class="btn btn-outline-primary toggle-list" 
+                                    data-product-id="{{ product.id }}"
+                                    data-in-list="{% if product.id in shopping_list_items %}true{% else %}false{% endif %}">
+                                <i class="fas {% if product.id in shopping_list_items %}fa-check{% else %}fa-plus{% endif %}"></i>
+                                {% if product.id in shopping_list_items %}In List{% else %}Add to List{% endif %}
+                            </button>
+                        {% else %}
+                            <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-outline-primary">
+                                <i class="fas fa-plus"></i> Add to List
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if products.has_other_pages %}
+        <div class="pagination-wrapper" data-aos="fade-up">
+            <div class="pagination">
+                {% if products.has_previous %}
+                <a href="?page={{ products.previous_page_number }}" class="page-link">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                {% endif %}
+
+                {% for num in products.paginator.page_range %}
+                <a href="?page={{ num }}" class="page-link {% if products.number == num %}active{% endif %}">
+                    {{ num }}
+                </a>
+                {% endfor %}
+
+                {% if products.has_next %}
+                <a href="?page={{ products.next_page_number }}" class="page-link">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Location Modal -->
+<div class="modal fade" id="locationModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Product Location</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="store-map">
+                    <!-- Store map will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.category-header {
+    background: #f8fafc;
+    padding: 2rem 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.navigation-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    background: white;
+    padding: 1rem 1.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    color: #475569;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.nav-item.home-link {
+    background: #3b82f6;
+    color: white;
+    font-weight: 500;
+}
+
+.nav-item.home-link:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+}
+
+.nav-item.home-link i {
+    font-size: 1.1rem;
+}
+
+.nav-item.current {
+    background: #f1f5f9;
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.separator {
+    color: #cbd5e1;
+    font-size: 0.875rem;
+}
+
+.category-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.sort-dropdown {
+    min-width: 200px;
+}
+
+.form-select {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 0.5rem 1rem;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.form-select:hover {
+    border-color: #cbd5e1;
+}
+
+.view-controls {
+    display: flex;
+    gap: 0.5rem;
+    background: #f1f5f9;
+    padding: 0.25rem;
+    border-radius: 0.75rem;
+}
+
+.view-btn {
+    border: none;
+    background: transparent;
+    padding: 0.5rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 0.5rem;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.view-btn:hover {
+    color: #3b82f6;
+}
+
+.view-btn.active {
+    background: #3b82f6;
+    color: white;
+}
+
+.category-info {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.category-icon {
+    width: 70px;
+    height: 70px;
+    background: #f1f5f9;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3b82f6;
+}
+
+.category-text {
+    flex: 1;
+}
+
+.page-title {
+    color: #1e293b;
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.page-subtitle {
+    color: #64748b;
+    margin: 0.5rem 0 0;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .navigation-wrapper {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .breadcrumb-nav {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+
+    .category-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .sort-dropdown {
+        width: 100%;
+    }
+
+    .view-controls {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .category-info {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .category-icon {
+        margin: 0 auto;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Find Product functionality
+    document.querySelectorAll('.find-product').forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            fetch(`/product-location/${productId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    const modal = new bootstrap.Modal(document.getElementById('locationModal'));
+                    document.querySelector('.modal-title').textContent = `Location: ${data.name}`;
+                    document.querySelector('.store-map').innerHTML = `
+                        <div class="location-info">
+                            <h3>Product Location</h3>
+                            <p><strong>Aisle:</strong> ${data.aisle}</p>
+                            <p><strong>Shelf:</strong> ${data.shelf}</p>
+                        </div>
+                    `;
+                    modal.show();
+                });
+        });
+    });
+
+    // Toggle Shopping List functionality
+    document.querySelectorAll('.toggle-list').forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            const inList = this.dataset.inList === 'true';
+            const url = inList ? `/remove-from-list/${productId}/` : `/add-to-list/${productId}/`;
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Toggle button state
+                    this.dataset.inList = (!inList).toString();
+                    this.innerHTML = inList ? 
+                        '<i class="fas fa-plus"></i> Add to List' :
+                        '<i class="fas fa-check"></i> In List';
+                    
+                    // Show success message
+                    showMessage(data.message, 'success');
+                }
+            })
+            .catch(error => {
+                showMessage('Error updating shopping list', 'error');
+            });
+        });
+    });
+});
+
+// Helper function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Helper function to show messages
+function showMessage(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.role = 'alert';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.products-grid'));
+    
+    // Auto-dismiss after 3 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
+}
+</script>
+{% endblock %} 

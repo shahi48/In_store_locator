@@ -1,0 +1,487 @@
+{% extends 'store/base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="hero-background"></div>
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6" data-aos="fade-right">
+                <div class="hero-content">
+                    <h1 class="hero-title">Smart Shopping<br>Made Simple</h1>
+                    <p class="hero-subtitle">Find any product's exact location in our store instantly</p>
+                    
+                    <!-- Search Form -->
+                    <div class="search-container">
+                        <form method="get" class="modern-search-form">
+                            <div class="search-wrapper">
+                                {{ form.query }}
+                                <button type="submit" class="search-button">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            <div class="category-filter">
+                                {{ form.category }}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6" data-aos="fade-left">
+                <div class="hero-image">
+                    <div class="floating-icons">
+                        <i class="fas fa-map-marker-alt icon-marker"></i>
+                        <i class="fas fa-shopping-cart icon-cart"></i>
+                        <i class="fas fa-store icon-store"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Search Results Section -->
+{% if products %}
+<section class="search-results-section">
+    <div class="container">
+        <h2 class="section-title" data-aos="fade-up">Search Results</h2>
+        <div class="products-grid">
+            {% for product in products %}
+            <div class="product-card" data-aos="fade-up" data-aos-delay="{{ forloop.counter|multiply:50 }}">
+                <div class="product-image">
+                    <div class="product-icon">
+                        <i class="fas fa-{{ product.category.icon }}"></i>
+                    </div>
+                </div>
+                <div class="product-details">
+                    <h3 class="product-title">{{ product.name }}</h3>
+                    <div class="product-meta">
+                        <span class="product-price">₹{{ product.price }}</span>
+                        <span class="product-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Aisle {{ product.aisle }} • Shelf {{ product.shelf }}
+                        </span>
+                    </div>
+                    <p class="product-description">{{ product.description|truncatechars:100 }}</p>
+                    <div class="product-actions">
+                        <button class="btn btn-primary find-product" data-product-id="{{ product.id }}">
+                            <i class="fas fa-map-marker-alt"></i> Find
+                        </button>
+                        {% if user.is_authenticated %}
+                            <button class="btn btn-outline-primary toggle-list" 
+                                    data-product-id="{{ product.id }}"
+                                    data-in-list="false">
+                                <i class="fas fa-plus"></i> Add to List
+                            </button>
+                        {% else %}
+                            <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-outline-primary">
+                                <i class="fas fa-plus"></i> Add to List
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if products.has_other_pages %}
+        <div class="pagination-wrapper" data-aos="fade-up">
+            <div class="pagination">
+                {% if products.has_previous %}
+                <a href="?query={{ request.GET.query }}&category={{ request.GET.category }}&page={{ products.previous_page_number }}" class="page-link">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                {% endif %}
+
+                {% for num in products.paginator.page_range %}
+                <a href="?query={{ request.GET.query }}&category={{ request.GET.category }}&page={{ num }}" 
+                   class="page-link {% if products.number == num %}active{% endif %}">
+                    {{ num }}
+                </a>
+                {% endfor %}
+
+                {% if products.has_next %}
+                <a href="?query={{ request.GET.query }}&category={{ request.GET.category }}&page={{ products.next_page_number }}" class="page-link">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
+
+<!-- Location Modal -->
+<div class="modal fade" id="locationModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Product Location</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="store-map">
+                    <!-- Store map will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Add any additional CSS styles here */
+.search-results-section {
+    padding: 60px 0;
+    background: #f8fafc;
+}
+
+.section-title {
+    margin-bottom: 2rem;
+    color: #1a202c;
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.modern-search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 500px;
+}
+
+.search-wrapper {
+    position: relative;
+}
+
+.search-input {
+    padding-right: 50px;
+    height: 50px;
+    border-radius: 25px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    font-size: 1.1rem;
+    padding-left: 20px;
+}
+
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.search-button {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    height: 40px;
+    width: 40px;
+    border-radius: 20px;
+    border: none;
+    background: #3b82f6;  /* Bright blue background */
+    color: white;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.search-button:hover {
+    background: #2563eb;  /* Darker blue on hover */
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.search-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.category-select {
+    height: 50px;
+    border-radius: 25px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    padding: 0 20px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 16px;
+}
+
+.category-select:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.category-select option {
+    color: #1a202c;
+    background: white;
+    padding: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .search-input,
+    .category-select {
+        height: 45px;
+        font-size: 1rem;
+    }
+
+    .search-button {
+        height: 35px;
+        width: 35px;
+        font-size: 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Find Product Button Functionality
+    document.querySelectorAll('.find-product').forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            
+            // Show loading state
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            
+            // Fetch product location
+            fetch(`/product-location/${productId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    // Reset button text
+                    this.innerHTML = '<i class="fas fa-map-marker-alt"></i> Find';
+                    
+                    // Update modal content
+                    const mapContainer = document.querySelector('.store-map');
+                    mapContainer.innerHTML = `
+                        <div class="location-info">
+                            <h3>${data.product_name}</h3>
+                            <p class="location-details">
+                                <i class="fas fa-map-marker-alt"></i>
+                                Aisle ${data.aisle} • Shelf ${data.shelf}
+                            </p>
+                            <div class="store-layout">
+                                <!-- Add your store layout visualization here -->
+                                <div class="aisle-indicator">Aisle ${data.aisle}</div>
+                                <div class="shelf-indicator">Shelf ${data.shelf}</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('locationModal'));
+                    modal.show();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    this.innerHTML = '<i class="fas fa-map-marker-alt"></i> Find';
+                    alert('Error finding product location. Please try again.');
+                });
+        });
+    });
+
+    // Add to List Button Functionality
+    document.querySelectorAll('.toggle-list').forEach(button => {
+        button.addEventListener('click', function() {
+            if (!this.classList.contains('loading')) {
+                const productId = this.dataset.productId;
+                const inList = this.dataset.inList === 'true';
+                const originalHtml = this.innerHTML;
+                
+                // Show loading state
+                this.classList.add('loading');
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                
+                // Determine the action (add or remove)
+                const action = inList ? 'remove-from-list' : 'add-to-list';
+                
+                // Send request to server
+                fetch(`/${action}/${productId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    this.classList.remove('loading');
+                    if (data.status === 'success') {
+                        // Toggle button state
+                        this.dataset.inList = (!inList).toString();
+                        if (!inList) {
+                            this.innerHTML = '<i class="fas fa-check"></i> In List';
+                            this.classList.add('in-list');
+                        } else {
+                            this.innerHTML = '<i class="fas fa-plus"></i> Add to List';
+                            this.classList.remove('in-list');
+                        }
+                        
+                        // Show success message
+                        showToast(data.message);
+                    } else {
+                        throw new Error(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    this.classList.remove('loading');
+                    this.innerHTML = originalHtml;
+                    showToast('Error updating shopping list. Please try again.', 'error');
+                });
+            }
+        });
+    });
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Toast notification function
+    function showToast(message, type = 'success') {
+        const toastContainer = document.getElementById('toast-container') || createToastContainer();
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+            <div class="toast-content">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        toastContainer.appendChild(toast);
+        
+        // Remove toast after animation
+        setTimeout(() => {
+            toast.classList.add('fade-out');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // Create toast container if it doesn't exist
+    function createToastContainer() {
+        const container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+        return container;
+    }
+});
+</script>
+
+<style>
+/* Toast Notifications */
+#toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.toast {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    margin-top: 10px;
+    overflow: hidden;
+    animation: slideIn 0.3s ease-out;
+}
+
+.toast.fade-out {
+    animation: slideOut 0.3s ease-out forwards;
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    gap: 12px;
+}
+
+.toast.success .toast-content i {
+    color: #22c55e;
+}
+
+.toast.error .toast-content i {
+    color: #ef4444;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Button States */
+.toggle-list.loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.toggle-list.in-list {
+    background-color: #22c55e;
+    border-color: #22c55e;
+    color: white;
+}
+
+.toggle-list.in-list:hover {
+    background-color: #16a34a;
+    border-color: #16a34a;
+}
+</style>
+{% endblock %} 
